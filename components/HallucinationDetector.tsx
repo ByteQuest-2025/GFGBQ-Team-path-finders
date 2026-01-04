@@ -48,23 +48,23 @@ export const HallucinationDetector: React.FC = () => {
   }, []);
 
   const getDemoResults = () => {
-    // Mock results for demo mode
+    // Mock results for demo mode matching Scenario 1 from DEMO_SCENARIOS.md
     const mockHallucination: HallucinationDetectionResult = {
       hasHallucinations: true,
       hallucinationCount: 2,
       findings: [
         {
-          text: 'Mickey Mouse vs. Donald Duck (2023)',
+          text: 'Rajesh Kumar vs. State of Delhi (2028)',
           type: 'fake_citation',
           severity: 'high',
-          explanation: 'This case citation appears to be completely fabricated. The case involves fictional characters and does not exist in any legal database.',
+          explanation: 'Future date detected (2028). Cases cannot be from the future. This is likely a hallucination.',
           suggestion: 'Verify case citations against official legal databases before citing in legal documents.'
         },
         {
-          text: 'Article 500',
+          text: 'Article 600',
           type: 'invalid_statute',
           severity: 'high',
-          explanation: 'The Indian Constitution only has 395 Articles (as of original adoption). Article 500 does not exist.',
+          explanation: 'Article 600 does not exist. The Indian Constitution has only 395 articles (max valid article number).',
           suggestion: 'Check the correct article number. The Constitution has Articles 1-395.'
         }
       ]
@@ -72,28 +72,42 @@ export const HallucinationDetector: React.FC = () => {
 
     const mockVerification: TrustedOutput = {
       originalText: aiGeneratedText,
-      overallTrustScore: 0.33,
+      overallTrustScore: 0.50,
       verificationResults: [
         {
-          claim: 'Mickey Mouse vs. Donald Duck (2023)',
+          claim: 'Rajesh Kumar vs. State of Delhi (2028)',
           status: 'hallucinated',
           confidence: 0.0,
-          explanation: 'Case citation involves fictional characters. No such case exists in Indian legal records.',
-          source: undefined
+          explanation: 'Future date detected (2028). Cases cannot be from the future. This is likely a hallucination.',
+          source: 'known_fake'
         },
         {
-          claim: 'Article 500',
+          claim: 'Article 600',
           status: 'hallucinated',
           confidence: 0.0,
-          explanation: 'Invalid constitutional reference. Indian Constitution only has 395 Articles.',
-          source: undefined
+          explanation: 'Article 600 does not exist. The Indian Constitution has only 395 articles (max valid article number).',
+          source: 'statute_check'
+        },
+        {
+          claim: 'Section 498A IPC',
+          status: 'verified',
+          confidence: 1.0,
+          explanation: 'Section 498A IPC is a valid provision of the Indian Penal Code.',
+          source: 'Indian Penal Code, 1860'
         },
         {
           claim: 'Section 420 IPC',
           status: 'verified',
           confidence: 1.0,
-          explanation: 'Valid section of Indian Penal Code dealing with cheating and dishonestly inducing delivery of property.',
+          explanation: 'Section 420 IPC is a valid provision of the Indian Penal Code.',
           source: 'Indian Penal Code, 1860'
+        },
+        {
+          claim: 'Vishakha vs. State of Rajasthan',
+          status: 'verified',
+          confidence: 1.0,
+          explanation: 'This is a well-known landmark case in Indian legal history.',
+          source: 'landmark_case'
         }
       ]
     };

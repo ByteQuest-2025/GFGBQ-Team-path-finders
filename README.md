@@ -1,3 +1,13 @@
+
+DRIVE VIDEO LINK OF PROJECT : https://drive.google.com/file/d/1ouCNW0t3gb3donCNvmYAtEjcgeVoBofe/view?usp=sharing
+
+DRIVE PPT LINK OF PROJECT : https://drive.google.com/file/d/1nDhOfwaUxGHpf4Wz3r4PfbaCwM2YMfBR/view?usp=sharing
+
+
+
+
+
+
 # 🏛️ AI-Driven Judicial Precedent & Case Management Ecosystem
 
 ## 🎯 Enhanced with AI Hallucination Detection & Verification System
@@ -9,7 +19,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Google AI](https://img.shields.io/badge/Google_AI-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
+[![Groq](https://img.shields.io/badge/Groq-F55036?style=for-the-badge&logo=groq&logoColor=white)](https://groq.com/)
 
 </div>
 
@@ -32,7 +42,7 @@ This legal AI platform now includes a **comprehensive hallucination detection an
 
 ### Prerequisites
 - Node.js (v16 or higher)
-- Gemini API key ([Get one here](https://ai.google.dev/))
+- Groq API key ([Get one here](https://console.groq.com))
 
 ### Installation
 
@@ -43,9 +53,9 @@ This legal AI platform now includes a **comprehensive hallucination detection an
 
 2. **Configure API key:**
 
-   Edit `.env.local` and add your Gemini API key:
+   Edit `.env.local` and add your Groq API key:
    ```
-   API_KEY=your_gemini_api_key_here
+   VITE_GROQ_API_KEY=your_groq_api_key_here
    ```
 
 3. **Run the app:**
@@ -141,9 +151,9 @@ Complete transparency:
 │  │   └─ verifyLegalText()                           │
 │  └─ geminiService.ts          ✓ Enhanced            │
 ├─────────────────────────────────────────────────────┤
-│           AI Layer (Google Gemini 2.5)               │
-│  ├─ Gemini Pro  - Complex reasoning                 │
-│  └─ Gemini Flash - Fast verification                │
+│           AI Layer (Groq - Llama 3.3 70B)            │
+│  ├─ llama-3.3-70b-versatile - Primary model         │
+│  └─ Ultra-fast inference with Groq LPU              │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -185,11 +195,10 @@ Complete transparency:
 │       └── BiasMonitor.tsx           ✓ Enhanced: Bias + Hallucinations
 ├── services/
 │   ├── verificationService.ts        ← NEW: Core verification engine
+│   ├── groqService.ts                ✓ Primary AI service (Groq/Llama 3.3)
 │   └── geminiService.ts              ✓ Enhanced with hallucination detection
 ├── types.ts                          ✓ New verification types added
-├── HACKATHON_IMPLEMENTATION.md       ← NEW: Technical documentation
-├── DEMO_SCENARIOS.md                 ← NEW: Test scenarios
-└── PRESENTATION_TALKING_POINTS.md    ← NEW: Presentation guide
+
 ```
 
 ---
@@ -217,7 +226,8 @@ Complete transparency:
 ### **Technologies Used**
 
 - **Frontend**: React 19, TypeScript, Vite
-- **AI/ML**: Google Gemini 2.5 Pro & Flash
+- **AI/ML**: Groq (Llama 3.3 70B Versatile)
+- **Inference**: Groq LPU (Language Processing Unit) for ultra-fast responses
 - **Styling**: Custom CSS with theme support
 - **State Management**: React Hooks
 - **Type Safety**: TypeScript strict mode
@@ -256,17 +266,19 @@ Complete transparency:
 4. **💡 Explainable AI** - Complete transparency
 5. **🎨 Inline Integration** - Verification within workflow
 6. **🚀 Production-Ready** - Not just a prototype
+7. **⚡ Ultra-Fast Inference** - Groq LPU for lightning-fast responses
 
 ---
 
 ## 🔮 Future Enhancements
 
 - [ ] Integration with Indian Kanoon API for live case verification
-- [ ] Custom ML model trained on Indian case law
+- [ ] Fine-tuned Llama model specifically on Indian case law
 - [ ] Batch verification API for large documents
 - [ ] PDF verification report export
 - [ ] Multi-language support (Hindi, Tamil, etc.)
 - [ ] Real-time statute database updates
+- [ ] Function calling for advanced RAG workflows
 
 ---
 
@@ -284,7 +296,8 @@ This project was created for educational and demonstration purposes.
 
 ## 🙏 Acknowledgments
 
-- **Google Gemini AI** for powering the AI features
+- **Groq** for ultra-fast LLM inference with Llama 3.3 70B
+- **Meta AI** for the Llama 3.3 model
 - **React & TypeScript** communities for excellent tools
 - **Hackathon Organizers** for the opportunity
 

@@ -8,18 +8,17 @@
 **Where**: Judge Dashboard → Hallucination Detector
 **Paste This**:
 ```
-In the landmark case of Rajesh Kumar vs. State of Delhi (2025), the Supreme Court held that Section 498A IPC should be interpreted strictly. The court also cited Article 999 of the Indian Constitution and Section 420 IPC. The judgment referenced the case of Vishakha vs. State of Rajasthan and stated that property rights under Article 31 are absolute.
+In the landmark case of Rajesh Kumar vs. State of Delhi (2028), the Supreme Court held that Section 498A IPC should be interpreted strictly. The court also cited Article 600 of the Indian Constitution and Section 420 IPC. The judgment referenced the case of Vishakha vs. State of Rajasthan and established new precedents regarding constitutional rights.
 ```
 
 **Expected Results**:
-- ❌ **Fake Citation**: "Rajesh Kumar vs. State of Delhi (2025)" - Future date, likely fabricated
-- ❌ **Invalid Article**: "Article 999" - Constitution only has 395 articles
-- ✅ **Valid Statute**: "Section 498A IPC" - Real provision
-- ✅ **Valid Statute**: "Section 420 IPC" - Real provision
-- ✅ **Valid Case**: "Vishakha vs. State of Rajasthan" - Real landmark case
-- ⚠️ **Partially Valid**: "Article 31" - Was in Constitution but deleted
+- 🚫 **Fake Citation** (HIGH SEVERITY): "Rajesh Kumar vs. State of Delhi (2028)" - Future date detected. Cases cannot be from the future. This is likely a hallucination.
+- ⚖️ **Invalid Statute** (HIGH SEVERITY): "Article 600" - The Indian Constitution only has 395 Articles (as of original adoption). Article 600 does not exist.
+- ✅ **Valid Statute**: "Section 498A IPC" - Real provision dealing with dowry harassment
+- ✅ **Valid Statute**: "Section 420 IPC" - Real provision dealing with cheating and dishonesty
+- ✅ **Valid Case**: "Vishakha vs. State of Rajasthan" - Well-known landmark case establishing sexual harassment guidelines
 
-**Trust Score**: ~50% (Partially Verified)
+**Trust Score**: ~50% (Partially Verified - Mix of real and fabricated content)
 
 ---
 
@@ -152,9 +151,12 @@ The accused, being a woman, is naturally emotional and unreliable. The case of F
 3. **Click**: "Verify AI Output"
 4. **Show**:
    - Trust Score: ~50%
-   - Hallucinations Tab: Point out fake citation
-   - Verification Tab: Show claim-by-claim breakdown
-5. **Emphasize**: "See how it identifies Rajesh Kumar case as fake, Article 999 as invalid, but verifies Section 498A?"
+   - Hallucinations Tab: Point out "2 Potential Hallucinations Detected"
+   - Show the two HIGH SEVERITY findings:
+     - 🚫 Fake Citation: "Rajesh Kumar vs. State of Delhi (2028)"
+     - ⚖️ Invalid Statute: "Article 600"
+   - Verification Tab: Show claim-by-claim breakdown with verified items (Section 498A, 420, Vishakha case)
+5. **Emphasize**: "See how it catches the future-dated fake case and invalid Article 600, but correctly verifies Section 498A and the Vishakha landmark case?"
 
 ### **Demo Part 2: Integrated Verification (1.5 minutes)**
 

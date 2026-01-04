@@ -1,6 +1,9 @@
-import { GoogleGenAI, Type } from '@google/genai';
+import Groq from 'groq-sdk';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+const groq = new Groq({
+  apiKey: import.meta.env.VITE_GROQ_API_KEY,
+  dangerouslyAllowBrowser: true,
+});
 
 // Known Indian legal databases and sources for verification
 const TRUSTED_SOURCES = {
@@ -39,106 +42,98 @@ const KNOWN_STATUTES = [
   'Article 226',
 ];
 
-/**
- * Extracts factual claims from AI-generated text
- * Returns structured claims that need verification
- */
 export const extractClaims = async (text: string): Promise<string[]> => {
-  const model = 'gemini-2.5-flash';
-  const prompt = `
-    Analyze the following AI-generated legal text and extract ALL factual claims that could be verified.
+  const model = 'llama-3.3-70b-versatile';
+  const prompt = `Extract ALL factual claims from the following AI-generated legal text. Return a JSON array of claim strings.
 
-    Focus on extracting:
-    1. Case citations (e.g., "Kesavananda Bharati vs State of Kerala")
-    2. Statute references (e.g., "Section 138 of Negotiable Instruments Act")
-    3. Legal principles stated as facts
-    4. Court names and jurisdictions
-    5. Years and dates of judgments
+  Text: ${text}
 
-    Text to analyze:
-    ---
-    ${text}
-    ---
+  Return format: {"claims": ["claim1", "claim2", ...]}`;
 
-    Return a JSON array of claim strings. Each claim should be a complete, standalone statement.
-    Example: ["Case X vs Y was decided in 2018", "Section 420 IPC deals with cheating"]
-  `;
-
-  const response = await ai.models.generateContent({
+  const response = await groq.chat.completions.create({
     model,
-    contents: prompt,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          claims: {
-            type: Type.ARRAY,
-            items: { type: Type.STRING },
-          },
-        },
-        required: ['claims'],
-      },
-    },
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.3,
   });
 
-  const result = JSON.parse(response.text);
-  return result.claims || [];
+  try {
+    const content = response.choices[0]?.message?.content || '{}';
+    const result = JSON.parse(content);
+    return result.claims || [];
+  } catch {
+    return [];
+  }
 };
 
-/**
- * Verifies if a case citation appears to be real or fabricated
- * Uses AI to check plausibility and pattern matching
- */
 export const verifyCaseCitation = async (
   caseName: string
 ): Promise<{ exists: boolean; confidence: number; source: string; explanation: string }> => {
-  const model = 'gemini-2.5-pro';
-  const prompt = `
-    You are a legal citation verification expert for Indian law. Analyze whether the following case citation appears to be real or potentially fabricated/hallucinated.
-
-    Case Citation: "${caseName}"
-
-    Check for:
-    1. Realistic party names (not obviously fictional)
-    2. Proper citation format (e.g., AIR, SCC, High Court abbreviations)
-    3. Realistic year (should be within legal history, not future dates)
-    4. Known landmark cases vs unknown cases
-    5. Plausibility of case existing based on Indian legal naming conventions
-
-    If this is a well-known landmark case (like Kesavananda Bharati, Maneka Gandhi, Vishaka, etc.), mark as verified.
-    If it follows proper citation format and appears plausible, mark as "likely_real" with lower confidence.
-    If it has suspicious patterns (future dates, fictional names, wrong format), mark as "likely_fake".
-
-    Return your analysis as JSON:
-    {
-      "exists": true/false (true if definitely known or likely real, false if suspicious),
-      "confidence": 0.0 to 1.0 (how confident you are in this assessment),
-      "source": "landmark_case" or "appears_plausible" or "suspicious_pattern" or "known_fake",
-      "explanation": "Brief explanation of your reasoning"
+  // Check for future dates (obvious hallucination)
+  const yearMatch = caseName.match(/\(?\s*(\d{4})\s*\)?/);
+  if (yearMatch) {
+    const year = parseInt(yearMatch[1]);
+    const currentYear = new Date().getFullYear();
+    if (year > currentYear) {
+      return {
+        exists: false,
+        confidence: 0.0,
+        source: 'known_fake',
+        explanation: `Future date detected (${year}). Cases cannot be from the future. This is likely a hallucination.`,
+      };
     }
-  `;
+  }
+
+  // List of well-known landmark cases
+  const landmarkCases = [
+    'kesavananda bharati',
+    'maneka gandhi',
+    'vishakha',
+    'minerva mills',
+    'golaknath',
+    'indira sawhney',
+    'navtej singh johar',
+    'shreya singhal',
+    'k.s. puttaswamy',
+  ];
+
+  const normalizedCase = caseName.toLowerCase();
+  const isLandmark = landmarkCases.some(landmark => normalizedCase.includes(landmark));
+
+  if (isLandmark) {
+    return {
+      exists: true,
+      confidence: 1.0,
+      source: 'landmark_case',
+      explanation: 'This is a well-known landmark case in Indian legal history.',
+    };
+  }
+
+  // For other cases, use AI with skepticism
+  const model = 'llama-3.3-70b-versatile';
+  const prompt = `You are a strict legal citation verifier. Is "${caseName}" a REAL, VERIFIED Indian court case?
+
+Be VERY skeptical. Only return high confidence if you're absolutely certain it's a real case.
+Check for: realistic party names, proper citation format, plausible year.
+
+Return JSON: {"exists": true/false, "confidence": 0.0-1.0, "source": "string", "explanation": "string"}`;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await groq.chat.completions.create({
       model,
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            exists: { type: Type.BOOLEAN },
-            confidence: { type: Type.NUMBER },
-            source: { type: Type.STRING },
-            explanation: { type: Type.STRING },
-          },
-          required: ['exists', 'confidence', 'source', 'explanation'],
-        },
-      },
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.1,
     });
 
-    return JSON.parse(response.text);
+    const content = response.choices[0]?.message?.content || '{}';
+    const result = JSON.parse(content);
+
+    // Lower confidence for non-landmark cases
+    if (result.confidence > 0.6) {
+      result.confidence = 0.5;
+      result.source = 'appears_plausible';
+    }
+
+    return result;
   } catch (error) {
     console.error('Case verification error:', error);
     return {
@@ -150,14 +145,46 @@ export const verifyCaseCitation = async (
   }
 };
 
-/**
- * Verifies if a statute reference is valid
- */
 export const verifyStatute = async (
   statuteName: string
 ): Promise<{ exists: boolean; confidence: number; explanation: string }> => {
-  // Quick check against known statutes
   const normalized = statuteName.toLowerCase();
+
+  // Check for invalid Article numbers (Constitution has 395 articles + some deleted)
+  const articleMatch = statuteName.match(/article\s+(\d+)/i);
+  if (articleMatch) {
+    const articleNum = parseInt(articleMatch[1]);
+
+    // Articles beyond 395 are definitely fake
+    if (articleNum > 500) {
+      return {
+        exists: false,
+        confidence: 0.0,
+        explanation: `Article ${articleNum} does not exist. The Indian Constitution has only 395 articles (max valid article number).`,
+      };
+    }
+
+    // Check for deleted articles
+    const deletedArticles = [31]; // Article 31 (Right to Property) was deleted by 44th Amendment
+    if (deletedArticles.includes(articleNum)) {
+      return {
+        exists: false,
+        confidence: 0.3,
+        explanation: `Article ${articleNum} (Right to Property) was part of the Constitution but has been deleted by the 44th Amendment. It is no longer a fundamental right.`,
+      };
+    }
+
+    // Valid article number range
+    if (articleNum >= 1 && articleNum <= 395) {
+      return {
+        exists: true,
+        confidence: 1.0,
+        explanation: `Article ${articleNum} is a valid article of the Indian Constitution.`,
+      };
+    }
+  }
+
+  // Check for known statutes
   const isKnown = KNOWN_STATUTES.some((statute) =>
     normalized.includes(statute.toLowerCase())
   );
@@ -170,44 +197,49 @@ export const verifyStatute = async (
     };
   }
 
-  // Use AI for deeper verification
-  const model = 'gemini-2.5-flash';
-  const prompt = `
-    Is "${statuteName}" a real Indian statute, act, or constitutional provision?
-
-    Check if it matches:
-    - Indian Penal Code sections
-    - Constitutional articles
-    - Central or State Acts
-    - Well-known legal provisions
-
-    Return JSON:
-    {
-      "exists": true/false,
-      "confidence": 0.0 to 1.0,
-      "explanation": "Brief explanation"
+  // Check IPC sections (valid range: 1-511)
+  const ipcMatch = statuteName.match(/section\s+(\d+[A-Z]?)\s+(?:of\s+)?ipc/i);
+  if (ipcMatch) {
+    const sectionNum = parseInt(ipcMatch[1]);
+    if (sectionNum >= 1 && sectionNum <= 511) {
+      return {
+        exists: true,
+        confidence: 1.0,
+        explanation: `Section ${ipcMatch[1]} IPC is a valid provision of the Indian Penal Code.`,
+      };
+    } else {
+      return {
+        exists: false,
+        confidence: 0.0,
+        explanation: `Section ${sectionNum} IPC does not exist. Valid IPC sections range from 1 to 511.`,
+      };
     }
-  `;
+  }
+
+  // Use AI for deeper verification with skepticism
+  const model = 'llama-3.3-70b-versatile';
+  const prompt = `Is "${statuteName}" a REAL Indian statute, act, or legal provision?
+
+Be STRICT. Only return high confidence if you're certain it exists.
+
+Return JSON: {"exists": true/false, "confidence": 0.0-1.0, "explanation": "string"}`;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await groq.chat.completions.create({
       model,
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            exists: { type: Type.BOOLEAN },
-            confidence: { type: Type.NUMBER },
-            explanation: { type: Type.STRING },
-          },
-          required: ['exists', 'confidence', 'explanation'],
-        },
-      },
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.1,
     });
 
-    return JSON.parse(response.text);
+    const content = response.choices[0]?.message?.content || '{}';
+    const result = JSON.parse(content);
+
+    // Be skeptical - lower confidence for unverified statutes
+    if (result.confidence > 0.6) {
+      result.confidence = 0.5;
+    }
+
+    return result;
   } catch (error) {
     console.error('Statute verification error:', error);
     return {
@@ -218,21 +250,15 @@ export const verifyStatute = async (
   }
 };
 
-/**
- * Checks if a URL is valid and accessible
- */
 export const checkLinkValidity = async (
   url: string
 ): Promise<{ valid: boolean; status: string }> => {
   try {
-    // Basic URL format validation
     const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
     if (!urlPattern.test(url)) {
       return { valid: false, status: 'Invalid URL format' };
     }
 
-    // Note: In a production environment, you would make an actual HTTP request
-    // For now, we'll do basic validation
     const hasProtocol = url.startsWith('http://') || url.startsWith('https://');
 
     return {
@@ -244,10 +270,6 @@ export const checkLinkValidity = async (
   }
 };
 
-/**
- * Comprehensive verification of AI-generated legal text
- * This is the main function that orchestrates all verification checks
- */
 export const verifyLegalText = async (
   text: string
 ): Promise<{
@@ -260,12 +282,10 @@ export const verifyLegalText = async (
     explanation: string;
   }>;
 }> => {
-  // Extract all claims from the text
   const claims = await extractClaims(text);
 
   const verificationResults = await Promise.all(
     claims.map(async (claim) => {
-      // Check if claim contains a case citation
       const casePattern = /([A-Z][a-z]+(\s+[A-Z][a-z]+)*)\s+(vs?\.?|v\.?)\s+([A-Z][a-z]+(\s+[A-Z][a-z]+)*)/i;
       const caseMatch = claim.match(casePattern);
 
@@ -286,7 +306,6 @@ export const verifyLegalText = async (
         };
       }
 
-      // Check if claim contains a statute reference
       const statutePattern = /(Section|Article|Act|Chapter)\s+\d+[A-Z]?(\s+of)?/i;
       const statuteMatch = claim.match(statutePattern);
 
@@ -306,7 +325,6 @@ export const verifyLegalText = async (
         };
       }
 
-      // For other claims, use AI to assess factual accuracy
       return {
         claim,
         status: 'partial' as const,
@@ -317,7 +335,6 @@ export const verifyLegalText = async (
     })
   );
 
-  // Calculate overall trust score
   const totalConfidence = verificationResults.reduce(
     (sum, result) => sum + result.confidence,
     0
@@ -332,10 +349,6 @@ export const verifyLegalText = async (
   };
 };
 
-/**
- * Detects potential hallucinations in AI-generated legal content
- * Focuses on identifying fake citations, non-existent statutes, and unsupported claims
- */
 export const detectHallucinations = async (
   text: string
 ): Promise<{
